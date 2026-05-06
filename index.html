@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ちかくの図書館</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header p { font-size: 11px; color: #718096; }
+    main { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+    .hero { margin-bottom: 20px; }
+    .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .hero p { font-size: 13px; color: #718096; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .card h2 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+
+    .tabs { display: flex; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 14px; width: fit-content; }
+    .tab {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff;
+      color: #4a5568;
+      border: none;
+      transition: background .15s, color .15s;
+    }
+    .tab.active { background: #0284c7; color: #fff; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    input, select {
+      flex: 1;
+      min-width: 120px;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2,132,199,.15);
+    }
+    .btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background .15s, opacity .15s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: #0284c7; color: #fff; }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    .hint { font-size: 12px; color: #718096; margin-bottom: 10px; }
+    .error-box {
+      background: #fff5f5; border: 1px solid #fc8181;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; color: #c53030; margin-top: 10px;
+    }
+
+    .spinner-wrap { text-align: center; padding: 40px; }
+    .spinner {
+      display: inline-block; width: 36px; height: 36px;
+      border: 4px solid #bee3f8; border-top-color: #0284c7;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-wrap p { font-size: 13px; color: #718096; margin-top: 10px; }
+
+    .results-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .results-meta span { font-size: 13px; color: #4a5568; }
+    .results-meta strong { color: #1a202c; }
+    .results-meta button { font-size: 12px; color: #a0aec0; background: none; border: none; cursor: pointer; }
+    .results-meta button:hover { color: #718096; }
+    .select-hint { font-size: 12px; color: #a0aec0; margin-bottom: 10px; }
+
+    .lib-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+    @media(min-width: 600px) { .lib-grid { grid-template-columns: 1fr 1fr; } }
+
+    .lib-card {
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 10px; padding: 14px;
+      cursor: pointer; transition: box-shadow .15s, border-color .15s;
+      position: relative;
+    }
+    .lib-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .lib-card.selected { border-color: #0284c7; box-shadow: 0 0 0 2px rgba(2,132,199,.2); }
+
+    .lib-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .lib-addr { font-size: 11px; color: #718096; margin-bottom: 8px; }
+    .lib-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .lib-links a {
+      font-size: 11px; color: #0284c7; text-decoration: none;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .lib-links a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-block; font-size: 10px; padding: 1px 7px;
+      border-radius: 20px; font-weight: 600; margin-left: 6px;
+      vertical-align: middle;
+    }
+    .badge-pref { background: #e9d8fd; color: #6b46c1; }
+    .badge-city { background: #bee3f8; color: #2b6cb0; }
+    .badge-univ { background: #c6f6d5; color: #276749; }
+    .badge-spec { background: #feebc8; color: #c05621; }
+
+    .check-circle {
+      position: absolute; top: 12px; right: 12px;
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid #cbd5e0; display: flex;
+      align-items: center; justify-content: center;
+      transition: background .15s, border-color .15s;
+    }
+    .lib-card.selected .check-circle { background: #0284c7; border-color: #0284c7; }
+    .check-circle::after {
+      content: ''; display: none;
+      width: 5px; height: 9px;
+      border: 2px solid #fff; border-top: none; border-left: none;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .lib-card.selected .check-circle::after { display: block; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .chip {
+      background: #ebf8ff; color: #2b6cb0;
+      font-size: 12px; padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .avail-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #f7fafc; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 6px;
+    }
+    .avail-name { font-size: 13px; font-weight: 600; }
+    .avail-right { display: flex; align-items: center; gap: 10px; }
+    .status-ok { color: #276749; font-weight: 700; font-size: 13px; }
+    .status-warn { color: #b7791f; font-weight: 700; font-size: 13px; }
+    .status-none { color: #a0aec0; font-size: 13px; }
+    .reserve-btn {
+      font-size: 11px; padding: 4px 10px;
+      border-radius: 6px; border: 1px solid #cbd5e0;
+      background: #fff; color: #4a5568;
+      text-decoration: none;
+    }
+    .reserve-btn:hover { background: #f7fafc; }
+
+    footer {
+      text-align: center; font-size: 11px; color: #a0aec0;
+      padding: 16px; border-top: 1px solid #e2e8f0;
+      background: #fff; margin-top: 20px;
+    }
+    footer a { color: #0284c7; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:24px">📚</span>
+  <div>
+    <h1>ちかくの図書館</h1>
+    <p>Powered by カーリル図書館API</p>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <h2>ちかくの図書館を探そう</h2>
+    <p>現在地や地域から図書館を検索。図書館を選んでISBNを入力すると蔵書確認もできます。</p>
+  </div>
+
+  <div class="card">
+    <h2>🔍 図書館を探す</h2>
+    <div class="tabs">
+      <button class="tab active" id="tab-geo" onclick="switchTab('geo')">📍 現在地から</button>
+      <button class="tab" id="tab-area" onclick="switchTab('area')">🗾 地域から</button>
+    </div>
+
+    <div id="panel-geo">
+      <p class="hint">ブラウザの位置情報を使って近くの図書館を探します</p>
+      <button class="btn btn-primary" onclick="searchByGeo()" id="geo-btn">現在地の図書館を検索</button>
+    </div>
+
+    <div id="panel-area" style="display:none">
+      <div class="row">
+        <select id="sel-pref">
+          <option value="">都道府県を選択</option>
+          <option>北海道</option><option>青森県</option><option>岩手県</option><option>宮城県</option>
+          <option>秋田県</option><option>山形県</option><option>福島県</option><option>茨城県</option>
+          <option>栃木県</option><option>群馬県</option><option>埼玉県</option><option>千葉県</option>
+          <option>東京都</option><option>神奈川県</option><option>新潟県</option><option>富山県</option>
+          <option>石川県</option><option>福井県</option><option>山梨県</option><option>長野県</option>
+          <option>岐阜県</option><option>静岡県</option><option>愛知県</option><option>三重県</option>
+          <option>滋賀県</option><option>京都府</option><option>大阪府</option><option>兵庫県</option>
+          <option>奈良県</option><option>和歌山県</option><option>鳥取県</option><option>島根県</option>
+          <option>岡山県</option><option>広島県</option><option>山口県</option><option>徳島県</option>
+          <option>香川県</option><option>愛媛県</option><option>高知県</option><option>福岡県</option>
+          <option>佐賀県</option><option>長崎県</option><option>熊本県</option><option>大分県</option>
+          <option>宮崎県</option><option>鹿児島県</option><option>沖縄県</option>
+        </select>
+        <input type="text" id="inp-city" placeholder="市区町村（省略可）">
+        <button class="btn btn-primary" onclick="searchByArea()">検索</button>
+      </div>
+    </div>
+
+    <div id="search-error" class="error-box" style="display:none"></div>
+  </div>
+
+  <div id="results-section" style="display:none">
+    <div class="results-meta">
+      <span><strong id="result-count">0</strong> 件見つかりました <span id="selected-count" style="color:#0284c7"></span></span>
+      <button onclick="clearSelection()" id="clear-btn" style="display:none">選択解除</button>
+    </div>
+    <p class="select-hint">蔵書を確認したい図書館をタップして選択できます</p>
+    <div class="lib-grid" id="lib-grid"></div>
+  </div>
+
+  <div id="spinner" style="display:none" class="spinner-wrap">
+    <div class="spinner"></div>
+    <p>図書館を検索中...</p>
+  </div>
+
+  <div id="no-results" style="display:none" class="card">
+    <p style="font-size:32px;margin-bottom:8px;text-align:center">📭</p>
+    <p style="color:#718096;font-size:13px;text-align:center">この地域の図書館が見つかりませんでした</p>
+  </div>
+
+  <div class="card" id="book-card">
+    <h2>📖 蔵書を確認する</h2>
+    <div id="no-selection-msg">
+      <p style="font-size:13px;color:#a0aec0">上の図書館リストから確認したい図書館を選んでください</p>
+    </div>
+    <div id="book-form" style="display:none">
+      <div class="chips" id="selected-chips"></div>
+      <div class="row" style="margin-bottom:8px">
+        <input type="text" id="isbn-input" placeholder="ISBN（例：9784167110017）" onkeydown="if(event.key==='Enter')checkBook()">
+        <button class="btn btn-primary" onclick="checkBook()" id="check-btn">確認</button>
+      </div>
+      <div id="book-error" class="error-box" style="display:none"></div>
+      <div id="book-spinner" class="spinner-wrap" style="display:none">
+        <div class="spinner"></div>
+        <p>蔵書を確認中...</p>
+      </div>
+      <div id="book-results"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  図書館データは <a href="https://calil.jp" target="_blank">カーリル</a> が提供しています
+</footer>
+
+<script>
+const API_KEY = 'demo';
+const CALIL_BASE = 'https://api.calil.jp';
+
+let allLibraries = [];
+let selectedIds = new Set();
+
+function switchTab(mode) {
+  document.getElementById('panel-geo').style.display = mode === 'geo' ? '' : 'none';
+  document.getElementById('panel-area').style.display = mode === 'area' ? '' : 'none';
+  document.getElementById('tab-geo').classList.toggle('active', mode === 'geo');
+  document.getElementById('tab-area').classList.toggle('active', mode === 'area');
+  hideError('search-error');
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = '';
+}
+function hideError(id) { document.getElementById(id).style.display = 'none'; }
+
+function setLoading(on) {
+  document.getElementById('spinner').style.display = on ? '' : 'none';
+  document.getElementById('geo-btn').disabled = on;
+}
+
+function badgeClass(cat) {
+  if (cat === '都道府県立') return 'badge-pref';
+  if (cat === '市区町村立') return 'badge-city';
+  if (cat === '大学図書館') return 'badge-univ';
+  return 'badge-spec';
+}
+
+function renderLibraries(libs) {
+  allLibraries = libs;
+  selectedIds.clear();
+  updateSelectionUI();
+
+  const grid = document.getElementById('lib-grid');
+  grid.innerHTML = '';
+  document.getElementById('result-count').textContent = libs.length;
+  document.getElementById('results-section').style.display = '';
+  document.getElementById('no-results').style.display = libs.length === 0 ? '' : 'none';
+
+  libs.forEach(lib => {
+    const [lng, lat] = lib.geocode.split(',');
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    const div = document.createElement('div');
+    div.className = 'lib-card';
+    div.dataset.id = lib.libid;
+    div.innerHTML = `
+      <div class="check-circle"></div>
+      <div class="lib-name">
+        ${lib.formal}
+        <span class="badge ${badgeClass(lib.category)}">${lib.category}</span>
+      </div>
+      <div class="lib-addr">〒${lib.post}　${lib.address}</div>
+      <div class="lib-links">
+        ${lib.tel ? `<a href="tel:${lib.tel}">📞 ${lib.tel}</a>` : ''}
+        ${lib.url_pc ? `<a href="${lib.url_pc}" target="_blank" rel="noopener">🔗 ウェブサイト</a>` : ''}
+        <a href="${mapsUrl}" target="_blank" rel="noopener">🗺️ 地図</a>
+      </div>
+    `;
+    div.onclick = (e) => {
+      if (e.target.tagName === 'A') return;
+      toggleLib(lib.libid);
+    };
+    grid.appendChild(div);
+  });
+}
+
+function toggleLib(libid) {
+  if (selectedIds.has(libid)) selectedIds.delete(libid);
+  else selectedIds.add(libid);
+  updateSelectionUI();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  document.querySelectorAll('.lib-card').forEach(el => {
+    el.classList.toggle('selected', selectedIds.has(el.dataset.id));
+  });
+  const n = selectedIds.size;
+  document.getElementById('selected-count').textContent = n > 0 ? `（${n} 件選択中）` : '';
+  document.getElementById('clear-btn').style.display = n > 0 ? '' : 'none';
+
+  const selected = allLibraries.filter(l => selectedIds.has(l.libid));
+  if (selected.length > 0) {
+    document.getElementById('no-selection-msg').style.display = 'none';
+    document.getElementById('book-form').style.display = '';
+    const uniqueNames = [...new Set(selected.map(l => l.formal))];
+    document.getElementById('selected-chips').innerHTML =
+      uniqueNames.map(n => `<span class="chip">${n}</span>`).join('');
+  } else {
+    document.getElementById('no-selection-msg').style.display = '';
+    document.getElementById('book-form').style.display = 'none';
+    document.getElementById('book-results').innerHTML = '';
+  }
+}
+
+async function fetchLibraries(params) {
+  setLoading(true);
+  hideError('search-error');
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('no-results').style.display = 'none';
+  try {
+    const url = `${CALIL_BASE}/library?appkey=${API_KEY}&format=json&limit=20&${params}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('通信エラー');
+    const data = await res.json();
+    renderLibraries(Array.isArray(data) ? data : []);
+  } catch (e) {
+    showError('search-error', '図書館の取得に失敗しました: ' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function searchByGeo() {
+  if (!navigator.geolocation) {
+    showError('search-error', 'このブラウザは位置情報に対応していません');
+    return;
+  }
+  setLoading(true);
+  hideError('search-error');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      fetchLibraries(`geocode=${lng},${lat}`);
+    },
+    () => {
+      setLoading(false);
+      showError('search-error', '位置情報の取得が拒否されました。地域から検索してみてください。');
+    }
+  );
+}
+
+function searchByArea() {
+  const pref = document.getElementById('sel-pref').value;
+  const city = document.getElementById('inp-city').value.trim();
+  if (!pref) { showError('search-error', '都道府県を選択してください'); return; }
+  fetchLibraries(`pref=${encodeURIComponent(pref)}${city ? '&city=' + encodeURIComponent(city) : ''}`);
+}
+
+function normalizeIsbn(s) { return s.replace(/[-\s]/g, ''); }
+
+async function pollCheck(session) {
+  await new Promise(r => setTimeout(r, 2000));
+  const res = await fetch(`${CALIL_BASE}/check?appkey=${API_KEY}&session=${session}&format=json`);
+  const data = await res.json();
+  if (data.continue === 1) return pollCheck(data.session);
+  return data;
+}
+
+async function checkBook() {
+  const isbn = normalizeIsbn(document.getElementById('isbn-input').value);
+  hideError('book-error');
+  document.getElementById('book-results').innerHTML = '';
+
+  if (isbn.length < 10) {
+    showError('book-error', '正しいISBNを入力してください（例：9784000000000）');
+    return;
+  }
+  const selected = allLibraries.filter(l => selectedIds.has(l.libid));
+  if (!selected.length) return;
+
+  const systemids = [...new Set(selected.map(l => l.systemid))].join(',');
+  document.getElementById('book-spinner').style.display = '';
+  document.getElementById('check-btn').disabled = true;
+
+  try {
+    let res = await fetch(`${CALIL_BASE}/check?appkey=${API_KEY}&isbn=${isbn}&systemid=${encodeURIComponent(systemids)}&format=json`);
+    let data = await res.json();
+    if (data.continue === 1) data = await pollCheck(data.session);
+
+    const bookData = (data.books || {})[isbn] || {};
+    const uniqSystems = [...new Map(selected.map(l => [l.systemid, l])).values()];
+    const html = uniqSystems.map(lib => {
+      const sys = bookData[lib.systemid];
+      let statusHtml, reserveHtml = '';
+      if (!sys || !sys.libkey || Object.keys(sys.libkey).length === 0) {
+        statusHtml = `<span class="status-none">蔵書なし</span>`;
+      } else {
+        const entries = Object.entries(sys.libkey);
+        const ok = entries.find(([,v]) => v === '貸出可');
+        const text = ok ? '貸出可' : entries[0][1];
+        const cls = ok ? 'status-ok' : 'status-warn';
+        statusHtml = `<span class="${cls}">${text}</span>`;
+        if (sys.reserveurl) reserveHtml = `<a class="reserve-btn" href="${sys.reserveurl}" target="_blank" rel="noopener">予約</a>`;
+      }
+      return `<div class="avail-row">
+        <span class="avail-name">${lib.formal}</span>
+        <div class="avail-right">${statusHtml}${reserveHtml}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('book-results').innerHTML = html;
+  } catch (e) {
+    showError('book-error', '蔵書確認に失敗しました。しばらくしてから再試行してください。');
+  } finally {
+    document.getElementById('book-spinner').style.display = 'none';
+    document.getElementById('check-btn').disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
